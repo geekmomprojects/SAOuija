@@ -7,10 +7,8 @@
 #include <EEPROM.h>
 
 // Set one parameter below for the version of the SAOuija you have
-//#define SAOUIJA_FRONTLIT
-#define SAOUIJA_BACKLIT
-
-#define INITIALIZE_EEPROM  // Uncomment this only when first flashing the board. It overwrites the eeprom
+#define SAOUIJA_FRONTLIT
+//#define SAOUIJA_BACKLIT
 
 
 // Row LOW, col HI to turn on LED
@@ -42,9 +40,10 @@ enum MODES FUNCTION_MODE = MODE_DISPLAY;
 #define NOUIJA  4
 
 //High 4 bits are row, low 4 bits are column for the front mounted SAO
-const byte YES                      = 0x16;
-const byte NO                       = 0X11;
+
 #ifdef SAOUIJA_BACKLIT
+  const byte YES                      = 0x11;
+  const byte NO                       = 0X16;
   const byte charlist[NLETS + NNUMS]  = { 0x71, 0x61, 0x51, 0x41, 0x31, 0x21, 0x24, 0x34, 0x44, 0x54, 0x74, 0x75, 0x76, 0x72, 0x62, 0x52, 0x42, 0x32, 0x22, 0x25, 0x35, 0x45, 0x55, 0x64, 0x65, 0x66, // Letters A-Z
                                         0x73, 0x63, 0x53, 0x43, 0x33, 0x23, 0x26, 0x36, 0x46, 0x56};  // Numbers 0-10 
   const byte ouija[NOUIJA]            = {0x12, 0x13, 0x14, 0x15};
@@ -52,6 +51,8 @@ const byte NO                       = 0X11;
 #endif
 
 #ifdef SAOUIJA_FRONTLIT
+  const byte YES                      = 0x16;
+  const byte NO                       = 0X11;
   const byte charlist[NLETS + NNUMS]  = {0x76, 0x66, 0x56, 0x46, 0x36, 0x26, 0x23, 0x33, 0x43, 0x53, 0x73, 0x72, 0x71, 0x75, 0x65, 0x55, 0x45, 0x35, 0x25, 0x22, 0x32, 0x42, 0x52, 0x63, 0x62, 0x61, // Letters A-Z
                                         0x74, 0x64, 0x54, 0x44, 0x34, 0x24, 0x21, 0x31, 0x41, 0x51}; // Numbers 0-10
   const byte ouija[NOUIJA]            = {0x15, 0x14, 0x13, 0x12};
@@ -364,6 +365,7 @@ void longPressSel() {
       }
       clearEntryString();
       clearLEDs();
+      displayStrPtr = 0;    // Reset to beginning of display
       FUNCTION_MODE = MODE_DISPLAY;
       break;
   }
@@ -392,7 +394,7 @@ ISR(TCA0_LUNF_vect)
 }
 
 
-// animatest SAOuija display  - shows we're in enter mode
+// animatest SAOuija display  - shows we're in enter mode or between displaying strings
 void animOuija() {
   unsigned long display_ms          = 100;
   static int curLED                 = 0;
@@ -433,16 +435,18 @@ void staticOuija() {
 
 // Interval is time for each letter to be shown
 void showDisplayStr() {
-  unsigned long         display_ms = 600;
-  unsigned long         pause_ms = 100;
-  static unsigned long  lastCallTime = 0;
-  static bool           isPaused = true;
+  unsigned long         display_ms    = 600;  // Time to display each character
+  unsigned long         pause_ms      = 100;  // Blank time between characters
+  unsigned long         string_over_ms    = 1200; // Time to animate between displaying the string
+  static unsigned long  lastCallTime  = 0;
+  static bool           isPaused      = true;
+  static bool           isStringOver   = false;
 
   unsigned long tdiff = millis() - lastCallTime;
 
   if (isPaused) {
     if (tdiff < pause_ms) {
-      return;
+      return; // return here so we don't increment the call timer
     } else {
       // Pause over, show next character
       isPaused = false;
@@ -451,17 +455,38 @@ void showDisplayStr() {
       setHex(led, 255);
       } 
     }
+  } else if (isStringOver) {
+    if (tdiff < string_over_ms) {
+      return; // Return so we dont' increment the last call timer
+    } else {
+      isStringOver = false;
+      clearLEDs();
+      // Animation over, show first character;
+      byte led = charToLED(displayStr[displayStrPtr]);
+      if (led) {
+        setHex(led, 255);
+      } 
+    }
   } else {
     if (tdiff < display_ms) {
       return;
     } else {
+      
       // Turn off current character, start pause interval
       byte led = charToLED(displayStr[displayStrPtr]);
       if (led) {
         ledOffHex(led);
       }
+      //uint8_t nextPtr = (displayStrPtr + 1) % strlen(displayStr);
       displayStrPtr = (displayStrPtr + 1) % strlen(displayStr);
-      isPaused = true;
+      if (displayStrPtr == 0) {
+        for (int i = 0; i < NOUIJA; i++) {
+          setHex(ouija[i], 255);
+        }
+        isStringOver = true;
+      } else {
+        isPaused = true;
+      }
     }
 
   }
@@ -517,17 +542,21 @@ void setup() {
   buttonSel.attachLongPressStart(longPressSel);
   buttonMode.attachLongPressStart(longPressMode);
 
-  // Initialize with some data
+  // Retrieve any stored string from EEPROM
+  //#define INITIALIZE_EEPROM
   #ifdef INITIALIZE_EEPROM
-    storeEEPROM("HELLO WORLD ");
+    storeEEPROM("HELLO WORLD");
+    strcpy(displayStr, "AAZZ");
+  #else
+    int len = readEEPROM(displayStr);
+    if (!len) {
+      strcpy(displayStr, "HELLO WORLD");
+    }
+    delay(100);
   #endif
 
-  // Retrieve any stored string from EEPROM
-  int len = readEEPROM(displayStr);
-  if (!len) {
-    strcpy(displayStr, "Hello World ");
-  }
-  delay(100);
+
+
 
   // Initialize animation functions
   displayAnim = showDisplayStr;
