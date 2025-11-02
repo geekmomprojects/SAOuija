@@ -2,10 +2,10 @@ Ouija Board SAO designed for Hackaday SuperCon 2025
 
 There are two versions of the board, front lit and one backlit. 
 ### Front Illuminated
-<img src="../SAOuija/images/frontlitFront.png" height=200> | <img src="../SAOuija/images/frontlitBack.png" height=200>
+<img src="./images/frontlitFront.png" height=200> | <img src="./images/frontlitBack.png" height=200>
 </br> 
 ### Rear Illuminated
-<img src="../SAOuija/images/backlitFront.png" height=200> | <img src="../SAOuija/images/backlitBack.png" height=200>
+<img src="./images/backlitFront.png" height=200> | <img src="./images/backlitBack.png" height=200>
 <br>
 
 ## Bugs/Features:
