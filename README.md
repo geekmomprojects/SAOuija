@@ -12,9 +12,9 @@ There are two versions of the board, front lit and one backlit.
 
 | Frontlit | Backlit  |
 | -------- | -------- |
-| Power with 3.3V - 5.0 V |
+| Power with 3.3V - 5.0 V | Power with 3.3V - 5.0 V |
 | ATtiny1616 Processor| ATtiny816 Processor |
-| I2C pins on SAO connectors have 10K pullup resistors|
+| SAO connectors I2C have 10K pullup resistors | SAO connectors I2C have 10K pullup resistors |
 | Bodge wire needed connect "0" LED to GPIO1  | No bodge |
 | GPIO1 & GPIO2 not connected to SAO connector | GPIO1/GPIO2 both connected|
 | Multiplexed LEDs (7 rows, 6 cols) connected directly to ATtiny pins | Multiplexed LEDs with 7 rows connectged to shift register, 6 cols connected to ATtiny pins |
